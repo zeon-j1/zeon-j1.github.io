@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>pi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Verdana&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/decimal.js/10.4.3/decimal.min.js"></script>
+    <style>
+        body {
+            font-family: 'Verdana', monospace;
+        }
+        #pi {
+            display: block;
+            word-break: break-all;
+        }
+
+        .buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .buttons input {
+            width: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="buttons">
+        <span>Copy</span>
+        <button onclick="copyDigits(10)">10</button>|
+        <button onclick="copyDigits(100)">100</button>|
+        <button onclick="copyDigits(1000)">1,000</button>|
+        <input type="number" id="customDigits" min="1" max="1000" placeholder="n" />
+        <button onclick="copyDigits(parseInt(document.getElementById('customDigits').value))">custom</button>
+        <span>digits</span>
+    </div>
+    <div class="container">
+        <span id="pi"></span>
+    </div>
+    <script>
+        Decimal.set({ precision: 1010 });
+
+        const one = new Decimal(1);
+        const pi = Decimal.atan(one.div(5)).mul(16)
+            .sub(Decimal.atan(one.div(239)).mul(4));
+
+        document.getElementById("pi").textContent = pi.toFixed(1000);
+
+        function copyDigits(n) {
+            if (!n || n < 1) return;
+            const text = pi.toFixed(n);
+            navigator.clipboard.writeText(text);
+        }
+    </script>
+</body>
+</html>
