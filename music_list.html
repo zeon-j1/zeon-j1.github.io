@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music List</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222222;
+    --accent: #c8f545;
+    --accent-dim: #8aab1e;
+    --text: #e8e8e8;
+    --muted: #555555;
+    --danger: #ff4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 48px 24px;
+  }
+
+  header {
+    max-width: 780px;
+    margin: 0 auto 48px;
+    border-left: 3px solid var(--accent);
+    padding-left: 20px;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 10vw, 96px);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+
+  header h1 span { color: var(--accent); }
+
+  header p {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .container { max-width: 780px; margin: 0 auto; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px 14px 10px 36px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-wrap input:focus { border-color: var(--accent); }
+
+  .search-wrap::before {
+    content: "⌕";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 10px 16px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
+  .btn.primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); color: #000; }
+
+  /* CSV import */
+  #csv-input { display: none; }
+
+  /* Stats bar */
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .stats span { color: var(--accent); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 12px 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  thead th:hover { color: var(--accent); }
+  thead th.sorted { color: var(--accent); }
+  thead th .sort-icon { margin-left: 4px; opacity: 0.6; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    animation: fadeIn 0.3s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  tbody tr:hover { background: var(--surface); }
+
+  tbody td {
+    padding: 13px 12px;
+    vertical-align: middle;
+  }
+
+  .td-num {
+    color: var(--muted);
+    font-size: 11px;
+    width: 40px;
+  }
+
+  .td-artist { font-weight: 400; color: var(--text); }
+  .td-song { color: #999; font-style: italic; }
+
+  .td-del {
+    width: 36px;
+    text-align: center;
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 6px;
+    transition: color 0.15s;
+    font-family: monospace;
+  }
+
+  .del-btn:hover { color: var(--danger); }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 64px 0;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  .empty p:first-child { font-size: 32px; margin-bottom: 12px; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+    animation: slideUp 0.2s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+    color: var(--accent);
+  }
+
+  .field { margin-bottom: 16px; }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    justify-content: flex-end;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    padding: 12px 20px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.25s ease;
+    z-index: 200;
+    pointer-events: none;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Save indicator */
+  .save-indicator {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.3s;
+  }
+  .save-indicator .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .save-indicator.saved { color: var(--accent); }
+  .save-indicator.saved .dot { background: var(--accent); }
+
+  /* Footer */
+  .footer {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn.ghost {
+    font-size: 10px;
+    padding: 7px 12px;
+    color: var(--muted);
+    border-color: transparent;
+  }
+  .btn.ghost:hover { color: var(--accent); border-color: var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>My<br><span>Music</span><br>List</h1>
+  <p>Artist &amp; Song Collection</p>
+</header>
+
+<div class="container">
+
+  <div class="controls">
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Search artists or songs..." oninput="renderTable()">
+    </div>
+    <button class="btn" onclick="document.getElementById('csv-input').click()">Import CSV</button>
+    <button class="btn" onclick="exportCSV()">Export CSV</button>
+    <button class="btn primary" onclick="openModal()">+ Add Entry</button>
+    <input type="file" id="csv-input" accept=".csv,.txt" onchange="importCSV(event)">
+  </div>
+
+  <div class="stats">
+    <div>Total: <span id="stat-total">0</span></div>
+    <div>Artists: <span id="stat-artists">0</span></div>
+    <div id="stat-filter-wrap" style="display:none">Showing: <span id="stat-filtered">0</span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="td-num">#</th>
+          <th id="th-artist" class="sorted" onclick="setSort('artist')"
+            >Artist <span class="sort-icon" id="icon-artist">↑</span></th>
+          <th id="th-song" onclick="setSort('song')"
+            >Song <span class="sort-icon" id="icon-song"></span></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <div class="save-indicator" id="save-indicator">
+      <div class="dot"></div>
+      <span id="save-label">No changes</span>
+    </div>
+    <div class="footer-links">
+      <button class="btn ghost" onclick="clearSaved()">Clear saved data</button>
+      <button class="btn ghost" onclick="downloadPythonScript()">&#8595; Download Python script</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Entry Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h2>Add Entry</h2>
+    <div class="field">
+      <label>Artist</label>
+      <input type="text" id="input-artist" placeholder="e.g. AZALI" onkeydown="modalKey(event)">
+    </div>
+    <div class="field">
+      <label>Song</label>
+      <input type="text" id="input-song" placeholder="e.g. Decisive Battle" onkeydown="modalKey(event)">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="addEntry()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const STORAGE_KEY = 'musicList_entries';
+  let entries = [];
+  let sortKey = 'artist';
+  let sortDir = 1;
+  let saveTimer = null;
+
+  /* ── Persistence ── */
+  function saveToStorage() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      setSaveIndicator('saved');
+    } catch(e) {
+      setSaveIndicator('error');
+    }
+  }
+
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        entries = JSON.parse(raw);
+        setSaveIndicator('saved');
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  }
+
+  function setSaveIndicator(state) {
+    const el = document.getElementById('save-indicator');
+    const label = document.getElementById('save-label');
+    el.classList.remove('saved');
+    if (state === 'saved') {
+      el.classList.add('saved');
+      label.textContent = 'Saved in browser';
+    } else if (state === 'unsaved') {
+      label.textContent = 'Unsaved changes...';
+    } else if (state === 'error') {
+      label.textContent = 'Save failed';
+    } else {
+      label.textContent = 'No data saved';
+    }
+  }
+
+  function scheduleSave() {
+    setSaveIndicator('unsaved');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveToStorage, 800);
+  }
+
+  function clearSaved() {
+    if (!confirm('Clear all saved data from this browser? Your current list will be wiped.')) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    entries = [];
+    renderTable();
+    setSaveIndicator('none');
+    toast('Saved data cleared.');
+  }
+
+  /* ── Render ── */
+  function renderTable() {
+    const query = document.getElementById('search').value.toLowerCase().trim();
+    let filtered = query
+      ? entries.filter(e =>
+          e.artist.toLowerCase().includes(query) ||
+          e.song.toLowerCase().includes(query))
+      : entries;
+
+    const sorted = [...filtered].sort((a, b) => {
+      const va = a[sortKey].toLowerCase();
+      const vb = b[sortKey].toLowerCase();
+      return va < vb ? -sortDir : va > vb ? sortDir : 0;
+    });
+
+    const tbody = document.getElementById('tbody');
+    if (sorted.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><p>&#9834;</p><p>${query ? 'No matches found.' : 'No entries yet. Import a CSV or add one!'}</p></div></td></tr>`;
+    } else {
+      tbody.innerHTML = sorted.map((e, i) => `
+        <tr style="animation-delay:${Math.min(i * 0.03, 0.5)}s">
+          <td class="td-num">${i + 1}</td>
+          <td class="td-artist">${esc(e.artist)}</td>
+          <td class="td-song">${esc(e.song)}</td>
+          <td class="td-del"><button class="del-btn" onclick="deleteEntry('${esc(e.artist)}','${esc(e.song)}')" title="Remove">&#215;</button></td>
+        </tr>`).join('');
+    }
+
+    document.getElementById('stat-total').textContent = entries.length;
+    document.getElementById('stat-artists').textContent = new Set(entries.map(e => e.artist)).size;
+    const fw = document.getElementById('stat-filter-wrap');
+    if (query) {
+      fw.style.display = '';
+      document.getElementById('stat-filtered').textContent = sorted.length;
+    } else {
+      fw.style.display = 'none';
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  /* ── Sort ── */
+  function setSort(key) {
+    if (sortKey === key) sortDir *= -1;
+    else { sortKey = key; sortDir = 1; }
+    ['artist','song'].forEach(k => {
+      document.getElementById('th-' + k).classList.toggle('sorted', k === sortKey);
+      document.getElementById('icon-' + k).textContent = k === sortKey ? (sortDir === 1 ? '↑' : '↓') : '';
+    });
+    renderTable();
+  }
+
+  /* ── Add ── */
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+    setTimeout(() => document.getElementById('input-artist').focus(), 50);
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    document.getElementById('input-artist').value = '';
+    document.getElementById('input-song').value = '';
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+
+  function modalKey(e) { if (e.key === 'Enter') addEntry(); if (e.key === 'Escape') closeModal(); }
+
+  function addEntry() {
+    const artist = document.getElementById('input-artist').value.trim();
+    const song   = document.getElementById('input-song').value.trim();
+    if (!artist || !song) { toast('Fill in both fields!'); return; }
+    const isDupe = entries.some(e => e.artist.toLowerCase() === artist.toLowerCase() && e.song.toLowerCase() === song.toLowerCase());
+    if (isDupe) { toast('Entry already exists!'); return; }
+    entries.push({ artist, song });
+    closeModal();
+    renderTable();
+    scheduleSave();
+    toast('Entry added!');
+  }
+
+  /* ── Delete ── */
+  function deleteEntry(artist, song) {
+    entries = entries.filter(e => !(e.artist === artist && e.song === song));
+    renderTable();
+    scheduleSave();
+    toast('Entry removed.');
+  }
+
+  /* ── Import CSV ── */
+  function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+      let added = 0, skipped = 0;
+      lines.forEach((line, i) => {
+        const cols = line.split(',');
+        if (cols.length < 2) return;
+        const artist = cols[0].replace(/^"|"$/g,'').trim();
+        const song   = cols[1].replace(/^"|"$/g,'').trim();
+        if (i === 0 && artist.toLowerCase() === 'artist') return;
+        if (!artist || !song) return;
+        const isDupe = entries.some(e => e.artist.toLowerCase() === artist.toLowerCase() && e.song.toLowerCase() === song.toLowerCase());
+        if (isDupe) { skipped++; return; }
+        entries.push({ artist, song });
+        added++;
+      });
+      renderTable();
+      scheduleSave();
+      toast(`Imported ${added} entries${skipped ? `, ${skipped} skipped` : ''}.`);
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  /* ── Export CSV ── */
+  function exportCSV() {
+    if (entries.length === 0) { toast('Nothing to export!'); return; }
+    const sorted = [...entries].sort((a, b) => a.artist.toLowerCase() < b.artist.toLowerCase() ? -1 : 1);
+    const rows = ['Artist,Song', ...sorted.map(e => `${csvCell(e.artist)},${csvCell(e.song)}`)];
+    const blob = new Blob([rows.join('\r\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'music_list.csv';
+    a.click();
+    toast('CSV exported!');
+  }
+
+  function csvCell(v) {
+    return /[,"\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+  }
+
+  /* ── Download Python Script ── */
+  function downloadPythonScript() {
+    const code = `import csv
+import os
+import sys
+
+
+def parse_txt(txt_path):
+    """Parse a txt file with 'Song - Artist' format and return a list of (Artist, Song) tuples."""
+    entries = []
+    with open(txt_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if " - " in line:
+                # Format is "Song - Artist"; split on the first ' - '
+                song, artist = line.split(" - ", 1)
+                entries.append((artist.strip(), song.strip()))
+            else:
+                print(f"  [Warning] Skipping unrecognized line: {line!r}")
+    return entries
+
+
+def convert_txt_to_csv(txt_path, csv_path):
+    """Convert a txt file to a new CSV file, removing duplicates."""
+    entries = parse_txt(txt_path)
+    unique_entries = list(dict.fromkeys(entries))  # Remove duplicates, preserve order
+    unique_entries.sort(key=lambda x: x[0].lower())  # Sort by Artist A-Z
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Artist", "Song"])
+        writer.writerows(unique_entries)
+
+    print(f"Converted '{txt_path}' -> '{csv_path}'")
+    print(f"  {len(entries)} lines found, {len(unique_entries)} unique entries written.")
+
+
+def update_csv_from_txt(txt_path, csv_path):
+    """Update an existing CSV with new entries from a txt file, removing duplicates."""
+    existing = set()
+    existing_rows = []
+    if os.path.exists(csv_path):
+        with open(csv_path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            for row in reader:
+                if len(row) == 2:
+                    t = (row[0], row[1])
+                    existing.add(t)
+                    existing_rows.append(t)
+
+    new_entries = parse_txt(txt_path)
+    added = 0
+    for entry in new_entries:
+        if entry not in existing:
+            existing_rows.append(entry)
+            existing.add(entry)
+            added += 1
+
+    existing_rows.sort(key=lambda x: x[0].lower())  # Sort by Artist A-Z
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Artist", "Song"])
+        writer.writerows(existing_rows)
+
+    print(f"Updated '{csv_path}' with entries from '{txt_path}'")
+    print(f"  {added} new entries added. Total entries: {len(existing_rows)}.")
+
+
+def main():
+    usage = (
+        "Usage:\n"
+        "  Convert (new CSV):  python txt_to_csv.py convert input.txt output.csv\n"
+        "  Update (existing):  python txt_to_csv.py update  input.txt output.csv\n"
+    )
+
+    if len(sys.argv) != 4:
+        print(usage)
+        sys.exit(1)
+
+    mode, txt_path, csv_path = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    if not os.path.exists(txt_path):
+        print(f"Error: File not found: {txt_path}")
+        sys.exit(1)
+
+    if mode == "convert":
+        convert_txt_to_csv(txt_path, csv_path)
+    elif mode == "update":
+        update_csv_from_txt(txt_path, csv_path)
+    else:
+        print(f"Unknown mode '{mode}'. Choose 'convert' or 'update'.")
+        print(usage)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+`;
+    const blob = new Blob([code], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'txt_to_csv.py';
+    a.click();
+    toast('Python script downloaded!');
+  }
+
+  /* ── Toast ── */
+  let toastTimer;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  /* ── Init ── */
+  const hadSaved = loadFromStorage();
+  renderTable();
+  if (!hadSaved) setSaveIndicator('none');
+</script>
+</body>
+</html>
